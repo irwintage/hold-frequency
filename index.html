@@ -8,6 +8,9 @@
 <meta name="theme-color" content="#0b0b14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <script src="./Tone.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Inter:wght@300;400;500&display=swap');
@@ -62,12 +65,13 @@
     }
 
     .app-shell {
-      width: 100%;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 28px var(--sp-sm) 20px;
-    }
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px var(--sp-sm);
+}
 
     .app {
       position: relative;

@@ -1,0 +1,40 @@
+HOLD THE FREQUENCY
+Chrysasynth — Standalone Edition
+
+Thank you for downloading this tool.
+
+Hold the Frequency is a minimal sonic experiment
+from the Chrysasynth lab.
+
+-----------------------------------
+
+HOW TO USE
+
+1. Extract the folder
+2. Open "index.html" in your browser
+3. Click or touch the interface to start audio
+4. Hold the frequency and explore the sound
+
+-----------------------------------
+
+COMPATIBILITY
+
+Works in modern browsers:
+• Chrome
+• Edge
+• Safari
+• Firefox
+
+Desktop and mobile supported.
+
+Note: audio starts after user interaction due to browser audio policies.
+
+-----------------------------------
+
+CHRYSA SYNTH
+
+Chrysasynth is a collection of experimental sound tools
+and generative audio experiences.
+
+Explore more tools:
+https://chrysasynth.com

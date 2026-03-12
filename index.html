@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="carbon">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hold the Frequency — Chrysasynth Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="./Tone.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+      --font-display: 'Cinzel', serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+
+      --sp-xxs: 3px;
+      --sp-xs:  6px;
+      --sp-sm:  10px;
+      --sp-md:  14px;
+      --sp-lg:  20px;
+
+      --r-sm:   8px;
+      --r-md:   12px;
+      --r-lg:   18px;
+      --r-pill: 999px;
+
+      --text-1: #f5f0ff;
+      --text-2: rgba(245,240,255,0.70);
+      --text-3: rgba(245,240,255,0.42);
+
+      --surface:    rgba(8,4,20,0.92);
+      --surface-2:  rgba(20,10,35,0.85);
+      --chip-bg:    rgba(255,255,255,0.06);
+      --stroke:     rgba(255,255,255,0.08);
+
+      /* Ombre nettoyée : moins large, moins sale sur les bords et en bas */
+      --shadow-card:
+        0 10px 24px rgba(0,0,0,0.42),
+        0 2px 8px rgba(0,0,0,0.22),
+        0 1px 0 rgba(255,255,255,0.05);
+
+      --timer-progress: 0;
+      --chakra-color: #c4b5fd;
+      --chakra-glow:  rgba(196,181,253,0.25);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: transparent;
+      color: var(--text-1);
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-shell {
+      width: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 28px var(--sp-sm) 20px;
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      background:
+        linear-gradient(160deg, rgba(30,12,55,0.97) 0%, rgba(12,5,28,0.99) 55%, rgba(45,10,25,0.97) 100%);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: var(--shadow-card);
+      padding: var(--sp-md) var(--sp-md) var(--sp-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--sp-sm);
+
+      /* clé du nettoyage */
+      overflow: hidden;
+      isolation: isolate;
+      user-select: none;
+    }
+
+    .app-inner-clip {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 22px;
+      display: contents;
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, var(--chakra-glow), transparent 70%);
+      transition: background 1.2s ease;
+      border-radius: 26px;
+      z-index: 0;
+    }
+
+    .session-bar {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .session-seg {
+      flex: 1;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      transition: background 0.5s ease, box-shadow 0.5s ease;
+    }
+
+    .session-seg.done {
+      background: var(--chakra-seg-color, rgba(255,255,255,0.5));
+      box-shadow: 0 0 6px var(--chakra-seg-color, rgba(255,255,255,0.3));
+    }
+
+    .session-seg.active {
+      background: linear-gradient(to right, var(--chakra-color) calc(var(--timer-progress) * 100%), rgba(255,255,255,0.12) 0%);
+    }
+
+    .app-header {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .app-header h1 {
+      font-family: var(--font-display);
+      font-size: 0.62rem;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .badge {
+      font-size: 0.60rem;
+      font-family: var(--font-body);
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: var(--r-pill);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+
+    .flask-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .flask {
+      width: clamp(130px, 38vw, 165px);
+      height: clamp(130px, 38vw, 165px);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 22% 8%, rgba(255,255,255,0.22), transparent 50%),
+        radial-gradient(circle at 80% 90%, rgba(0,0,0,0.95), rgba(0,0,0,0.99));
+      box-shadow:
+        0 16px 40px rgba(0,0,0,0.95),
+        0 0 0 1px rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column-reverse;
+      animation: flaskBreathe 5s ease-in-out infinite;
+    }
+
+    @keyframes flaskBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.018); }
+    }
+
+    .flask-layer {
+      flex: 1;
+      opacity: 0.14;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      position: relative;
+    }
+
+    .flask-layer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 15%, rgba(255,255,255,0.30), transparent 65%);
+      mix-blend-mode: screen;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .flask-layer.completed {
+      opacity: 0.92;
+    }
+
+    .flask-layer.completed::after { opacity: 0.7; }
+
+    .flask-layer.pulse {
+      animation: layerPulse 0.9s ease-out;
+    }
+
+    @keyframes layerPulse {
+      from { transform: scaleY(1); }
+      40%  { transform: scaleY(1.06); }
+      to   { transform: scaleY(1); }
+    }
+
+    .flask.glow-final {
+      animation: flaskBreathe 5s ease-in-out infinite, flaskGlow 2s ease-out forwards;
+    }
+
+    @keyframes flaskGlow {
+      0%   { box-shadow: 0 16px 40px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.06); }
+      40%  { box-shadow: 0 20px 60px rgba(0,0,0,1), 0 0 40px rgba(255,255,255,0.35); }
+      100% { box-shadow: 0 18px 44px rgba(0,0,0,0.98), 0 0 24px rgba(255,255,255,0.20); }
+    }
+
+    .chips-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-xxs);
+      justify-content: center;
+      width: 100%;
+    }
+
+    .chip {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--r-pill);
+      padding: 3px 9px;
+      min-height: 24px;
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--text-2);
+      background: var(--chip-bg);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: background 100ms ease, color 100ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      opacity: 0.85;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .chip:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .chip.active {
+      border-color: var(--chakra-color);
+      color: var(--text-1);
+      background: rgba(255,255,255,0.09);
+      box-shadow: 0 0 10px var(--chakra-glow);
+    }
+
+    .chip.active .chip-dot {
+      box-shadow: 0 0 6px var(--chakra-color);
+    }
+
+    .chip.completed {
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.30);
+      color: #86efac;
+    }
+
+    .hold-section {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--sp-xs);
+      width: 100%;
+    }
+
+    .hold-caption {
+      font-family: var(--font-display);
+      font-size: 0.60rem;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--text-2);
+    }
+
+    .timer-ring {
+      width: clamp(112px, 32vw, 140px);
+      height: clamp(112px, 32vw, 140px);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at center, rgba(0,0,0,1) 0, rgba(0,0,0,1) 63%, transparent 64%),
+        conic-gradient(
+          var(--chakra-color) calc(var(--timer-progress) * 360deg),
+          rgba(255,255,255,0.06) 0deg
+        );
+      transition: background 50ms linear;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.95);
+    }
+
+    .timer-ring.idle {
+      background:
+        radial-gradient(circle at center, rgba(0,0,0,1) 0, rgba(0,0,0,1) 63%, transparent 64%),
+        conic-gradient(rgba(255,255,255,0.06) 0deg, rgba(10,10,10,1) 360deg);
+    }
+
+    .hold-btn {
+      width: clamp(88px, 26vw, 110px);
+      height: clamp(88px, 26vw, 110px);
+      border-radius: 50%;
+      border: none;
+      background:
+        radial-gradient(circle at 28% 8%, rgba(255,255,255,0.24), transparent 58%),
+        linear-gradient(to bottom, rgba(5,2,12,1), rgba(15,8,30,1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,1),
+        0 16px 36px rgba(0,0,0,1);
+      transition: transform 80ms ease, box-shadow 80ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .hold-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at top, rgba(255,255,255,0.22), transparent 60%);
+      opacity: 0.30;
+    }
+
+    .hold-core {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 10%, rgba(255,255,255,0.38), transparent 68%);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.14),
+        0 0 14px rgba(255,255,255,0.18);
+      transition: box-shadow 0.4s ease, background 0.4s ease;
+    }
+
+    .hold-btn.active {
+      transform: translateY(1px);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.22),
+        0 14px 38px rgba(0,0,0,1);
+    }
+
+    .hold-btn.active .hold-core {
+      background: radial-gradient(circle at 30% 10%, var(--chakra-color), transparent 68%);
+      box-shadow:
+        0 0 0 1px var(--chakra-color),
+        0 0 18px var(--chakra-glow);
+      animation: corePulse 2s ease-in-out infinite;
+    }
+
+    @keyframes corePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(0.92); }
+    }
+
+    .timer-text {
+      font-size: 0.62rem;
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+    }
+
+    .status-row {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--sp-sm);
+    }
+
+    .chakra-name {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--text-1);
+      letter-spacing: 0.06em;
+    }
+
+    .chakra-freq {
+      font-size: 0.60rem;
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+      margin-top: 1px;
+    }
+
+    .status-pill {
+      padding: 3px 9px;
+      border-radius: var(--r-pill);
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.60);
+      font-size: 0.62rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      color: var(--text-1);
+    }
+
+    .status-pill.complete {
+      background: rgba(22,163,74,0.20);
+      border-color: rgba(34,197,94,0.35);
+      color: #86efac;
+    }
+
+    .status-pill-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px rgba(74,222,128,0.8);
+    }
+
+    .volume-row {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-xs);
+      padding-top: var(--sp-xxs);
+    }
+
+    .vol-label, .tone-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 80px;
+      height: 2px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 0 8px rgba(255,255,255,0.35);
+    }
+
+    .slider::-moz-range-thumb {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      border: none;
+      box-shadow: 0 0 8px rgba(255,255,255,0.35);
+    }
+
+    .debug-hotspot {
+      position: absolute;
+      top: 6px; right: 6px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .debug-hotspot.debug-on {
+      opacity: 0.5;
+      background: radial-gradient(circle, rgba(255,255,255,0.7), transparent 70%);
+    }
+
+    @media (max-height: 620px) {
+      .app { gap: var(--sp-xs); padding: var(--sp-sm); }
+      .flask { width: 118px; height: 118px; }
+      .timer-ring { width: 106px; height: 106px; }
+      .hold-btn { width: 84px; height: 84px; }
+      .hold-core { width: 32px; height: 32px; }
+    }
+
+    @media (max-width: 360px) {
+      .app { padding: var(--sp-sm) var(--sp-xs); }
+      .slider { width: 68px; }
+    }
+    .hold-section,
+.timer-ring,
+.hold-btn,
+.hold-btn *,
+.chip,
+.chip * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  touch-action: manipulation;
+}
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <button id="debugToggle" class="debug-hotspot" aria-hidden="true" tabindex="-1"></button>
+
+  <div class="app">
+
+    <div class="session-bar" id="sessionBar"></div>
+
+    <header class="app-header">
+      <div class="title-block"><h1>Chrysasynth Studio</h1></div>
+      <div class="badge">7 chakras · 7 minutes</div>
+    </header>
+
+    <div class="flask-wrapper">
+      <div class="flask" id="flask">
+        <div class="flask-layer" data-index="0"></div>
+        <div class="flask-layer" data-index="1"></div>
+        <div class="flask-layer" data-index="2"></div>
+        <div class="flask-layer" data-index="3"></div>
+        <div class="flask-layer" data-index="4"></div>
+        <div class="flask-layer" data-index="5"></div>
+        <div class="flask-layer" data-index="6"></div>
+      </div>
+    </div>
+
+    <div class="chips-row" id="chakraChips"></div>
+
+    <section class="hold-section">
+      <div class="hold-caption">Hold the frequency</div>
+      <div class="timer-ring idle" id="timerRing">
+        <button class="hold-btn" id="holdButton">
+          <div class="hold-core"></div>
+        </button>
+      </div>
+      <div class="timer-text">
+        <span id="timerDisplay">00:00</span> ·
+        <span id="timerStatus">Ready</span> ·
+        <span id="holdHint">Hold for 60s</span>
+      </div>
+    </section>
+
+    <div class="status-row">
+      <div>
+        <div class="chakra-name" id="chakraName"></div>
+        <div class="chakra-freq" id="chakraFreq"></div>
+      </div>
+      <div class="status-pill" id="sessionStatus">
+        <span id="sessionStatusText">0/7</span>
+      </div>
+    </div>
+
+    <div class="volume-row">
+      <span class="vol-label">Vol</span>
+      <input id="volumeSlider" class="slider" type="range" min="0" max="100" value="40" />
+      <span class="tone-label">Tone</span>
+      <input id="toneSlider" class="slider" type="range" min="0" max="100" value="60" />
+    </div>
+
+  </div>
+</div>
+
+<script>
+const chakras = [
+  { name:"Root",      freq:396, color:"#f97373", glow:"rgba(249,115,115,0.22)", binauralDiff:5.5, reverbDecay:2.5, reverbWet:0.22, gainComp:1.00, filterCeil:2200, fadeIn:0.7 },
+  { name:"Sacral",    freq:417, color:"#fb923c", glow:"rgba(251,146,60,0.22)",  binauralDiff:5.0, reverbDecay:2.8, reverbWet:0.24, gainComp:0.98, filterCeil:2000, fadeIn:0.75 },
+  { name:"Solar",     freq:528, color:"#facc15", glow:"rgba(250,204,21,0.20)",  binauralDiff:4.0, reverbDecay:3.0, reverbWet:0.26, gainComp:0.95, filterCeil:1800, fadeIn:0.8 },
+  { name:"Heart",     freq:639, color:"#4ade80", glow:"rgba(74,222,128,0.20)",  binauralDiff:3.5, reverbDecay:3.2, reverbWet:0.28, gainComp:0.92, filterCeil:1600, fadeIn:0.85 },
+  { name:"Throat",    freq:741, color:"#38bdf8", glow:"rgba(56,189,248,0.22)",  binauralDiff:2.5, reverbDecay:3.8, reverbWet:0.34, gainComp:0.88, filterCeil:1300, fadeIn:1.0 },
+  { name:"Third Eye", freq:852, color:"#818cf8", glow:"rgba(129,140,248,0.22)", binauralDiff:2.0, reverbDecay:4.2, reverbWet:0.38, gainComp:0.84, filterCeil:1100, fadeIn:1.1 },
+  { name:"Crown",     freq:963, color:"#c4b5fd", glow:"rgba(196,181,253,0.22)", binauralDiff:1.5, reverbDecay:4.8, reverbWet:0.42, gainComp:0.80, filterCeil:950,  fadeIn:1.2 }
+];
+
+const HOLD_DURATION_BASE  = 60000;
+const HOLD_DURATION_DEBUG = 3000;
+let DEBUG = false;
+const getHoldDuration = () => DEBUG ? HOLD_DURATION_DEBUG : HOLD_DURATION_BASE;
+
+let currentChakra = 0;
+let completed = new Array(chakras.length).fill(false);
+let holdStart  = null;
+let holdRafId  = null;
+let isHolding  = false;
+
+let audioReady  = false;
+let audioNodes  = null;
+let volumeScalar = 0.05;
+let toneScalar   = 0.6;
+
+const chipsContainer   = document.getElementById("chakraChips");
+const flaskEl          = document.getElementById("flask");
+const flaskLayers      = [...document.querySelectorAll(".flask-layer")];
+const holdButton       = document.getElementById("holdButton");
+const timerRing        = document.getElementById("timerRing");
+const timerDisplay     = document.getElementById("timerDisplay");
+const timerStatus      = document.getElementById("timerStatus");
+const holdHint         = document.getElementById("holdHint");
+const chakraNameEl     = document.getElementById("chakraName");
+const chakraFreqEl     = document.getElementById("chakraFreq");
+const sessionStatus    = document.getElementById("sessionStatus");
+const sessionStatusTxt = document.getElementById("sessionStatusText");
+const debugToggle      = document.getElementById("debugToggle");
+const rootStyle        = document.documentElement.style;
+const volumeSlider     = document.getElementById("volumeSlider");
+const toneSlider       = document.getElementById("toneSlider");
+const sessionBarEl     = document.getElementById("sessionBar");
+
+function formatTime(ms) {
+  const t = Math.floor(ms / 1000);
+  return String(Math.floor(t/60)).padStart(2,"0") + ":" + String(t%60).padStart(2,"0");
+}
+
+function updateHoldHint() {
+  holdHint.textContent = DEBUG ? "Debug · 3s" : "Hold for 60s";
+}
+
+function applyChakraTheme(index) {
+  const c = chakras[index];
+  rootStyle.setProperty("--chakra-color", c.color);
+  rootStyle.setProperty("--chakra-glow",  c.glow);
+}
+
+function buildSessionBar() {
+  sessionBarEl.innerHTML = "";
+  chakras.forEach((c, i) => {
+    const seg = document.createElement("div");
+    seg.className = "session-seg";
+    seg.dataset.index = i;
+    seg.style.setProperty("--chakra-seg-color", c.color);
+    sessionBarEl.appendChild(seg);
+  });
+}
+
+function updateSessionBar() {
+  const segs = sessionBarEl.querySelectorAll(".session-seg");
+  segs.forEach((seg, i) => {
+    seg.classList.remove("done","active");
+    if (completed[i]) {
+      seg.classList.add("done");
+    } else if (i === currentChakra) {
+      seg.classList.add("active");
+    }
+  });
+}
+
+function updateStatusPill() {
+  const done = completed.filter(Boolean).length;
+  if (done === chakras.length) {
+    sessionStatus.classList.add("complete");
+    sessionStatusTxt.innerHTML = '<span class="status-pill-dot"></span>Aligned';
+  } else {
+    sessionStatus.classList.remove("complete");
+    sessionStatusTxt.textContent = done + "/7";
+  }
+}
+
+function updateUIForChakra() {
+  const chakra = chakras[currentChakra];
+  applyChakraTheme(currentChakra);
+
+  chipsContainer.querySelectorAll(".chip").forEach((chip, i) => {
+    chip.classList.toggle("active", i === currentChakra);
+    chip.classList.toggle("completed", completed[i]);
+  });
+
+  flaskLayers.forEach((layer, i) => {
+    layer.classList.toggle("completed", completed[i]);
+    layer.classList.remove("pulse");
+    layer.style.background = `linear-gradient(to top, ${chakras[i].color} 0%, rgba(0,0,0,1) 100%)`;
+    layer.style.opacity = completed[i] ? "0.92" : "0.14";
+  });
+
+  chakraNameEl.textContent = chakra.name;
+  chakraFreqEl.textContent = chakra.freq + " Hz · binaural";
+  updateStatusPill();
+  updateSessionBar();
+}
+
+function resetTimerVisual() {
+  holdStart = null;
+  rootStyle.setProperty("--timer-progress", 0);
+  timerDisplay.textContent = "00:00";
+  timerRing.classList.add("idle");
+  timerStatus.textContent = "Ready";
+}
+
+function startTimer() {
+  holdStart = performance.now();
+  timerRing.classList.remove("idle");
+
+  const loop = () => {
+    if (!isHolding || holdStart === null) return;
+    const elapsed  = performance.now() - holdStart;
+    const duration = getHoldDuration();
+    const progress = Math.min(elapsed / duration, 1);
+    rootStyle.setProperty("--timer-progress", progress);
+    timerDisplay.textContent = formatTime(elapsed);
+    updateSessionBar();
+
+    if (elapsed >= duration) {
+      completeCurrentHold();
+    } else {
+      holdRafId = requestAnimationFrame(loop);
+    }
+  };
+  holdRafId = requestAnimationFrame(loop);
+}
+
+function stopTimer(reset) {
+  if (holdRafId !== null) { cancelAnimationFrame(holdRafId); holdRafId = null; }
+  if (reset) resetTimerVisual();
+}
+
+async function ensureAudio() {
+  if (audioReady) return;
+  try {
+    await Tone.start();
+
+    const limiter = new Tone.Limiter(-4).toDestination();
+    const master = new Tone.Gain(0).connect(limiter);
+    const filter = new Tone.Filter(800, "lowpass");
+    const safetyLP = new Tone.Filter(8000, "lowpass");
+
+    const chakra = chakras[currentChakra];
+    const reverb = new Tone.Reverb({ decay: chakra.reverbDecay, wet: chakra.reverbWet });
+    await reverb.ready;
+
+    filter.connect(safetyLP);
+    safetyLP.connect(reverb);
+    reverb.connect(master);
+
+    const leftOsc  = new Tone.Oscillator(chakra.freq - chakra.binauralDiff / 2, "sine");
+    const rightOsc = new Tone.Oscillator(chakra.freq + chakra.binauralDiff / 2, "sine");
+
+    const leftPan  = new Tone.Panner(-0.85);
+    const rightPan = new Tone.Panner(0.85);
+    const leftGain  = new Tone.Gain(0.5);
+    const rightGain = new Tone.Gain(0.5);
+
+    leftOsc.chain(leftPan, leftGain, filter);
+    rightOsc.chain(rightPan, rightGain, filter);
+
+    leftOsc.start();
+    rightOsc.start();
+
+    audioNodes = { master, filter, safetyLP, reverb, limiter, leftOsc, rightOsc, leftPan, rightPan, leftGain, rightGain };
+    audioReady = true;
+
+    applyChakraAudio(false);
+  } catch (err) {
+    console.error("Audio init error:", err);
+    timerStatus.textContent = "Audio blocked";
+  }
+}
+
+function applyChakraAudio(smooth) {
+  if (!audioReady || !audioNodes) return;
+  const chakra = chakras[currentChakra];
+  const ramp = smooth ? 0.6 : 0.0;
+
+  const diff = chakra.binauralDiff;
+  audioNodes.leftOsc.frequency.rampTo(chakra.freq - diff / 2, ramp);
+  audioNodes.rightOsc.frequency.rampTo(chakra.freq + diff / 2, ramp);
+
+  const t      = toneScalar;
+  const minMul = 0.55;
+  const maxMul = 1.8;
+  const mul    = minMul + (maxMul - minMul) * t;
+  let cutoff   = chakra.freq * mul;
+  cutoff = Math.max(120, Math.min(cutoff, chakra.filterCeil));
+  audioNodes.filter.frequency.rampTo(cutoff, ramp > 0 ? ramp : 0.3);
+
+  audioNodes.reverb.set({ decay: chakra.reverbDecay, wet: chakra.reverbWet });
+}
+
+function startSound() {
+  if (!audioReady || !audioNodes) return;
+  applyChakraAudio(true);
+  const chakra = chakras[currentChakra];
+  const target = volumeScalar * chakra.gainComp;
+  const now = Tone.now();
+
+  try { audioNodes.master.gain.cancelAndHoldAtTime(now); } catch(e) {
+    audioNodes.master.gain.cancelScheduledValues(now);
+  }
+  audioNodes.master.gain.setValueAtTime(audioNodes.master.gain.value, now);
+  audioNodes.master.gain.linearRampToValueAtTime(target, now + chakra.fadeIn);
+}
+
+function stopSound() {
+  if (!audioReady || !audioNodes) return;
+  const now = Tone.now();
+  try { audioNodes.master.gain.cancelAndHoldAtTime(now); } catch(e) {
+    audioNodes.master.gain.cancelScheduledValues(now);
+  }
+  audioNodes.master.gain.setValueAtTime(audioNodes.master.gain.value, now);
+  audioNodes.master.gain.linearRampToValueAtTime(0, now + 0.7);
+}
+
+function applyVolumeFromSlider(smooth) {
+  const val = parseInt(volumeSlider.value, 10) || 0;
+  volumeScalar = (val / 100) * 0.11;
+  if (!audioReady || !audioNodes) return;
+  if (!isHolding) return;
+  const chakra = chakras[currentChakra];
+  const target = volumeScalar * chakra.gainComp;
+  const now = Tone.now();
+  try { audioNodes.master.gain.cancelAndHoldAtTime(now); } catch(e) {
+    audioNodes.master.gain.cancelScheduledValues(now);
+  }
+  audioNodes.master.gain.setValueAtTime(audioNodes.master.gain.value, now);
+  audioNodes.master.gain.linearRampToValueAtTime(target, now + (smooth ? 0.2 : 0));
+}
+
+function applyToneFromSlider() {
+  toneScalar = (parseInt(toneSlider.value, 10) || 0) / 100;
+  if (audioReady && audioNodes) applyChakraAudio(true);
+}
+
+volumeSlider.addEventListener("input", () => {
+  applyVolumeFromSlider(true);
+  try { localStorage.setItem("chrysasynth_vol", volumeSlider.value); } catch(e){}
+});
+
+toneSlider.addEventListener("input", () => {
+  applyToneFromSlider();
+  try { localStorage.setItem("chrysasynth_tone", toneSlider.value); } catch(e){}
+});
+
+function vibrate() {
+  if ("vibrate" in navigator) navigator.vibrate(80);
+}
+
+function completeCurrentHold() {
+  isHolding = false;
+  stopTimer(false);
+  stopSound();
+
+  completed[currentChakra] = true;
+  const layer = flaskLayers[currentChakra];
+  layer.classList.add("completed", "pulse");
+  setTimeout(() => layer.classList.remove("pulse"), 900);
+
+  vibrate();
+
+  timerDisplay.textContent = formatTime(getHoldDuration());
+  rootStyle.setProperty("--timer-progress", 1);
+  holdButton.classList.remove("active");
+  timerStatus.textContent = "Done";
+  holdHint.textContent = "Next chakra";
+
+  const allDone = completed.every(Boolean);
+  if (allDone) {
+    flaskEl.classList.add("glow-final");
+    updateStatusPill();
+  } else {
+    const next = completed.findIndex((c, i) => !c && i > currentChakra);
+    currentChakra = next !== -1 ? next : completed.findIndex(c => !c);
+  }
+
+  setTimeout(() => {
+    if (!allDone) { resetTimerVisual(); updateHoldHint(); }
+    updateUIForChakra();
+  }, 800);
+}
+
+function cancelHold() {
+  if (!isHolding) return;
+  isHolding = false;
+  stopTimer(true);
+  stopSound();
+  holdButton.classList.remove("active");
+  timerStatus.textContent = "Released";
+  updateHoldHint();
+}
+
+async function startHold() {
+  if (completed.every(Boolean)) return;
+
+  timerStatus.textContent = "Loading…";
+  await ensureAudio();
+
+  if (!isHolding) {
+    isHolding = true;
+    holdButton.classList.add("active");
+    timerStatus.textContent = "Holding";
+    updateHoldHint();
+    startSound();
+    resetTimerVisual();
+    startTimer();
+  }
+}
+
+function bindHoldEvents() {
+  holdButton.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (!isHolding) startHold();
+  });
+
+  ["pointerup","pointercancel","pointerleave"].forEach(evt => {
+    window.addEventListener(evt, e => {
+      if (isHolding) { e.preventDefault(); cancelHold(); }
+    });
+  });
+}
+
+function createChakraChips() {
+  chakras.forEach((chakra, index) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.dataset.index = index;
+
+    const dot = document.createElement("span");
+    dot.className = "chip-dot";
+    dot.style.background = chakra.color;
+
+    const label = document.createElement("span");
+    label.textContent = chakra.name;
+
+    chip.append(dot, label);
+
+    chip.addEventListener("click", () => {
+      if (isHolding) cancelHold();
+      currentChakra = index;
+      updateUIForChakra();
+      resetTimerVisual();
+      updateHoldHint();
+      if (audioReady) applyChakraAudio(true);
+    });
+
+    chipsContainer.appendChild(chip);
+  });
+}
+
+function initFlaskColors() {
+  flaskLayers.forEach((layer, i) => {
+    layer.style.background = `linear-gradient(to top, ${chakras[i].color} 0%, rgba(0,0,0,1) 100%)`;
+  });
+}
+
+function bindDebugToggle() {
+  if (!debugToggle) return;
+  debugToggle.addEventListener("click", e => {
+    e.preventDefault();
+    DEBUG = !DEBUG;
+    debugToggle.classList.toggle("debug-on", DEBUG);
+    timerStatus.textContent = DEBUG ? "Debug" : "Ready";
+    stopTimer(true);
+    updateHoldHint();
+  });
+  window.addEventListener("keydown", e => {
+    if (e.key && e.key.toLowerCase() === "d") debugToggle.click();
+  });
+}
+
+function restoreSliders() {
+  try {
+    const sv = localStorage.getItem("chrysasynth_vol");
+    const st = localStorage.getItem("chrysasynth_tone");
+    if (sv !== null) volumeSlider.value = sv;
+    if (st !== null) toneSlider.value   = st;
+  } catch(e) {}
+  volumeScalar = ((parseInt(volumeSlider.value,10)||40) / 100) * 0.11;
+  toneScalar   = (parseInt(toneSlider.value,10)||60) / 100;
+}
+
+function init() {
+  restoreSliders();
+  buildSessionBar();
+  createChakraChips();
+  initFlaskColors();
+  bindHoldEvents();
+  bindDebugToggle();
+  resetTimerVisual();
+  updateUIForChakra();
+  updateHoldHint();
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
+function reportHeight() {
+  const h = document.body.scrollHeight;
+  try {
+    window.parent.postMessage({ type:"setHeight", height:h }, "*");
+    window.parent.postMessage({ iframe:true, height:h }, "*");
+    window.parent.postMessage("height:" + h, "*");
+  } catch(e) {}
+  document.documentElement.style.height = h + "px";
+}
+window.addEventListener("load", reportHeight);
+if (window.ResizeObserver) {
+  new ResizeObserver(reportHeight).observe(document.body);
+} else {
+  window.addEventListener("resize", reportHeight);
+}
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("Service Worker registered"))
+      .catch(err => console.error("Service Worker error:", err));
+  });
+}
+</script>
+</body>
+</html>

@@ -354,6 +354,7 @@
       cursor: pointer;
       position: relative;
       overflow: hidden;
+      touch-action: none;
       box-shadow:
         0 0 0 1px rgba(0,0,0,1),
         0 16px 36px rgba(0,0,0,1);
@@ -943,15 +944,41 @@ async function startHold() {
 }
 
 function bindHoldEvents() {
-  holdButton.addEventListener("pointerdown", e => {
+
+  const endHold = (e) => {
+    if (isHolding) cancelHold();
+
+    try {
+      if (e && e.pointerId != null && holdButton.hasPointerCapture?.(e.pointerId)) {
+        holdButton.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {}
+  };
+
+  holdButton.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
-    if (!isHolding) startHold();
+
+    try {
+      holdButton.setPointerCapture(e.pointerId);
+    } catch (err) {}
+
+    if (!isHolding) {
+      await startHold();
+    }
   });
 
-  ["pointerup","pointercancel","pointerleave"].forEach(evt => {
-    window.addEventListener(evt, e => {
-      if (isHolding) { e.preventDefault(); cancelHold(); }
-    });
+  holdButton.addEventListener("pointerup", endHold);
+  holdButton.addEventListener("pointercancel", endHold);
+  holdButton.addEventListener("lostpointercapture", () => {
+    if (isHolding) cancelHold();
+  });
+
+  window.addEventListener("blur", () => {
+    if (isHolding) cancelHold();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && isHolding) cancelHold();
   });
 }
 
@@ -1056,3 +1083,4 @@ if ("serviceWorker" in navigator) {
 </script>
 </body>
 </html>
+

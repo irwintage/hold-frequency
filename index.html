@@ -360,6 +360,8 @@
       position: relative;
       overflow: hidden;
       touch-action: none;
+user-select: none;
+-webkit-user-select: none;
       box-shadow:
         0 0 0 1px rgba(0,0,0,1),
         0 16px 36px rgba(0,0,0,1);
@@ -638,7 +640,7 @@ let completed = new Array(chakras.length).fill(false);
 let holdStart  = null;
 let holdRafId  = null;
 let isHolding  = false;
-
+let holdRequested = false;
 let audioReady  = false;
 let audioNodes  = null;
 let volumeScalar = 0.05;
@@ -889,6 +891,7 @@ function vibrate() {
 }
 
 function completeCurrentHold() {
+holdRequested = false;
   isHolding = false;
   stopTimer(false);
   stopSound();
@@ -922,7 +925,14 @@ function completeCurrentHold() {
 }
 
 function cancelHold() {
-  if (!isHolding) return;
+  holdRequested = false;
+
+  if (!isHolding) {
+    timerStatus.textContent = "Released";
+    updateHoldHint();
+    return;
+  }
+
   isHolding = false;
   stopTimer(true);
   stopSound();
@@ -933,25 +943,32 @@ function cancelHold() {
 
 async function startHold() {
   if (completed.every(Boolean)) return;
+  if (holdRequested || isHolding) return;
 
+  holdRequested = true;
   timerStatus.textContent = "Loading…";
+
   await ensureAudio();
 
-  if (!isHolding) {
-    isHolding = true;
-    holdButton.classList.add("active");
-    timerStatus.textContent = "Holding";
+  if (!holdRequested) {
+    timerStatus.textContent = "Ready";
     updateHoldHint();
-    startSound();
-    resetTimerVisual();
-    startTimer();
+    return;
   }
+
+  isHolding = true;
+  holdButton.classList.add("active");
+  timerStatus.textContent = "Holding";
+  updateHoldHint();
+
+  startSound();
+  resetTimerVisual();
+  startTimer();
 }
 
 function bindHoldEvents() {
-
   const endHold = (e) => {
-    if (isHolding) cancelHold();
+    if (isHolding || holdRequested) cancelHold();
 
     try {
       if (e && e.pointerId != null && holdButton.hasPointerCapture?.(e.pointerId)) {
@@ -967,7 +984,7 @@ function bindHoldEvents() {
       holdButton.setPointerCapture(e.pointerId);
     } catch (err) {}
 
-    if (!isHolding) {
+    if (!isHolding && !holdRequested) {
       await startHold();
     }
   });
@@ -975,15 +992,15 @@ function bindHoldEvents() {
   holdButton.addEventListener("pointerup", endHold);
   holdButton.addEventListener("pointercancel", endHold);
   holdButton.addEventListener("lostpointercapture", () => {
-    if (isHolding) cancelHold();
+    if (isHolding || holdRequested) cancelHold();
   });
 
   window.addEventListener("blur", () => {
-    if (isHolding) cancelHold();
+    if (isHolding || holdRequested) cancelHold();
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && isHolding) cancelHold();
+    if (document.hidden && (isHolding || holdRequested)) cancelHold();
   });
 }
 
@@ -1088,4 +1105,3 @@ if ("serviceWorker" in navigator) {
 </script>
 </body>
 </html>
-

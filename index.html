@@ -556,9 +556,74 @@ user-select: none;
   -webkit-user-drag: none;
   touch-action: manipulation;
 }
+.start-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 4, 20, 0.82);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+}
+
+.start-card {
+  width: min(90vw, 320px);
+  padding: 24px 20px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(40, 22, 70, 0.95), rgba(16, 10, 30, 0.96));
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.6),
+    0 20px 40px rgba(0,0,0,0.6);
+  text-align: center;
+}
+
+.start-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-1);
+  margin-bottom: 10px;
+}
+
+.start-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  margin-bottom: 18px;
+}
+
+.start-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  min-width: 150px;
+  background: linear-gradient(180deg, #5a46a0, #362c5a);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 10px 24px rgba(0,0,0,0.35);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.start-btn:active {
+  transform: scale(0.98);
+}
   </style>
 </head>
 <body>
+  <div id="startScreen" class="start-screen">
+  <div class="start-card">
+    <div class="start-title">Hold the Frequency</div>
+    <div class="start-subtitle">A sonic focus experiment</div>
+    <button id="enableAudioBtn" class="start-btn">Enable Audio</button>
+  </div>
+</div>
 <div class="app-shell">
   <button id="debugToggle" class="debug-hotspot" aria-hidden="true" tabindex="-1"></button>
 
@@ -645,6 +710,7 @@ let audioReady  = false;
 let audioNodes  = null;
 let volumeScalar = 0.05;
 let toneScalar   = 0.6;
+let audioPrimed = false;
 
 const chipsContainer   = document.getElementById("chakraChips");
 const flaskEl          = document.getElementById("flask");
@@ -663,7 +729,8 @@ const rootStyle        = document.documentElement.style;
 const volumeSlider     = document.getElementById("volumeSlider");
 const toneSlider       = document.getElementById("toneSlider");
 const sessionBarEl     = document.getElementById("sessionBar");
-
+const startScreen = document.getElementById("startScreen");
+const enableAudioBtn = document.getElementById("enableAudioBtn");
 function formatTime(ms) {
   const t = Math.floor(ms / 1000);
   return String(Math.floor(t/60)).padStart(2,"0") + ":" + String(t%60).padStart(2,"0");
@@ -942,6 +1009,7 @@ function cancelHold() {
 }
 
 async function startHold() {
+if (!audioPrimed) return;
   if (completed.every(Boolean)) return;
   if (holdRequested || isHolding) return;
 
@@ -965,7 +1033,18 @@ async function startHold() {
   resetTimerVisual();
   startTimer();
 }
+async function enableAudio() {
+  if (audioPrimed) return;
 
+  enableAudioBtn.disabled = true;
+  enableAudioBtn.textContent = "Loading…";
+
+  await ensureAudio();
+
+  audioPrimed = true;
+
+  startScreen.style.display = "none";
+}
 function bindHoldEvents() {
   const endHold = (e) => {
     if (isHolding || holdRequested) cancelHold();
@@ -1074,6 +1153,9 @@ function init() {
   resetTimerVisual();
   updateUIForChakra();
   updateHoldHint();
+  if (enableAudioBtn) {
+  enableAudioBtn.addEventListener("click", enableAudio);
+}
 }
 
 document.addEventListener("DOMContentLoaded", init);

@@ -1274,7 +1274,7 @@ function reportHeight() {
     window.parent.postMessage({ iframe:true, height:h }, "*");
     window.parent.postMessage("height:" + h, "*");
   } catch(e) {}
-  document.documentElement.style.height = h + "px";
+  
 }
 window.addEventListener("load", reportHeight);
 if (window.ResizeObserver) {

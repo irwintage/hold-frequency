@@ -77,12 +77,12 @@ body {
   background: transparent;
 }
 
-  .app-shell::before {
+ .app-shell::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 
   background:
     linear-gradient(
@@ -102,7 +102,6 @@ body {
 
     .app {
       position: relative;
-      z-index: -1;
       width: min(100%, 460px);
       min-height: 100vh;
       min-height: 100dvh;

@@ -60,25 +60,34 @@
       overscroll-behavior: none;
       -webkit-tap-highlight-color: transparent;
     }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
 
+  background:
+    radial-gradient(circle at 50% 28%, var(--chakra-glow) 0%, transparent 28%),
+    radial-gradient(circle at 50% 88%, rgba(255,255,255,0.025) 0%, transparent 32%),
+    linear-gradient(180deg, #111318 0%, var(--bg) 48%, var(--bg-deep) 100%);
+
+  transition: background 1.1s ease;
+}
     button, input {
       font: inherit;
     }
 
     .app-shell {
-      position: relative;
-      width: 100%;
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: flex;
-      justify-content: center;
-      background:
-  radial-gradient(circle at 50% 28%, var(--chakra-glow) 0%, transparent 28%),
-  radial-gradient(circle at 50% 88%, rgba(255,255,255,0.025) 0%, transparent 32%),
-  linear-gradient(180deg, #111318 0%, var(--bg) 48%, var(--bg) 100%);
-      transition: background 1.1s ease;
-      isolation: isolate;
-    }
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  isolation: isolate;
+}
 
     .app-shell::before {
       content: "";
@@ -593,22 +602,26 @@
       -webkit-user-drag: none;
     }
 
-    .start-screen {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: grid;
-      place-items: center;
-      padding:
-        max(24px, env(safe-area-inset-top))
-        22px
-        max(24px, env(safe-area-inset-bottom));
-      background:
-        radial-gradient(circle at 50% 38%, var(--chakra-glow), transparent 34%),
-        linear-gradient(180deg, #111318, var(--bg-deep));
-      overscroll-behavior: none;
-    }
+  .start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
 
+  display: grid;
+  place-items: center;
+
+  padding:
+    max(24px, env(safe-area-inset-top))
+    22px
+    max(24px, env(safe-area-inset-bottom));
+
+  background: rgba(9, 10, 13, 0.58);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  overscroll-behavior: none;
+}
     .start-card {
       width: min(100%, 340px);
       padding: 28px 22px;

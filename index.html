@@ -77,20 +77,32 @@ body {
   background: transparent;
 }
 
-    .app-shell::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: -1;
-      background:
-        linear-gradient(115deg, transparent 0 46%, rgba(255,255,255,0.018) 50%, transparent 54%),
-        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.045), transparent 36%);
-      opacity: .8;
-    }
+  .app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  background:
+    linear-gradient(
+      115deg,
+      transparent 0 46%,
+      rgba(255,255,255,0.018) 50%,
+      transparent 54%
+    ),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255,255,255,0.045),
+      transparent 36%
+    );
+
+  opacity: .8;
+}
 
     .app {
       position: relative;
+      z-index: -1;
       width: min(100%, 460px);
       min-height: 100vh;
       min-height: 100dvh;
